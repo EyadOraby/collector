@@ -5,6 +5,11 @@ plugins {
 }
 
 android {
+    // Android lint crashes on a plugin's Java sources (a lint bug), so it is
+    // skipped for release builds; CI runs flutter analyze on our own code.
+    lint {
+        checkReleaseBuilds = false
+    }
     namespace = "dev.eyadoraby.collector"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
