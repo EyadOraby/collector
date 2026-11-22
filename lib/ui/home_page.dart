@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../main.dart';
 import '../models/entry.dart';
+import 'countries_page.dart';
 import 'editor_page.dart';
 import 'entry_page.dart';
 import 'pieces.dart';
@@ -18,6 +19,20 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String? _kind;
+  String? _country;
+  final _query = TextEditingController();
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openCountries() async {
+    final picked = await Navigator.of(context)
+        .push<String>(MaterialPageRoute(builder: (_) => const CountriesPage()));
+    if (picked != null && mounted) setState(() => _country = picked);
+  }
 
   Future<void> _scan() async {
     final source = await showModalBottomSheet<ImageSource>(
@@ -63,13 +78,46 @@ class _HomePageState extends State<HomePage> {
       listenable: store,
       builder: (context, _) {
         final all = store.entries;
-        final shown = _kind == null
-            ? all
-            : all.where((e) => e.kind == _kind).toList();
+        final shown = store
+            .search(_query.text)
+            .where((e) => _kind == null || e.kind == _kind)
+            .where(
+              (e) =>
+                  _country == null ||
+                  e.country.trim().toLowerCase() == _country!.toLowerCase(),
+            )
+            .toList();
         return Scaffold(
           body: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: _Header(onSettings: _openSettings)),
+              SliverToBoxAdapter(
+                child: _Header(
+                  onSettings: _openSettings,
+                  onCountries: _openCountries,
+                ),
+              ),
+              if (all.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: TextField(
+                      controller: _query,
+                      onChanged: (_) => setState(() {}),
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: 'Search name, country, year or notes',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _query.text.isEmpty
+                            ? null
+                            : IconButton(
+                                tooltip: 'Clear',
+                                icon: const Icon(Icons.close),
+                                onPressed: () => setState(() => _query.clear()),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
               if (all.isNotEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -87,6 +135,12 @@ class _HomePageState extends State<HomePage> {
                             selected: _kind == kind,
                             onSelected: (_) => setState(() => _kind = kind),
                           ),
+                        if (_country != null)
+                          InputChip(
+                            label: Text(_country!),
+                            avatar: const Icon(Icons.place_outlined, size: 18),
+                            onDeleted: () => setState(() => _country = null),
+                          ),
                       ],
                     ),
                   ),
@@ -95,6 +149,16 @@ class _HomePageState extends State<HomePage> {
                 const SliverFillRemaining(
                   hasScrollBody: false,
                   child: _EmptyState(),
+                )
+              else if (shown.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text(
+                      'Nothing matches. Try another search or filter.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 )
               else
                 SliverPadding(
@@ -129,8 +193,9 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.onSettings});
+  const _Header({required this.onSettings, required this.onCountries});
   final VoidCallback onSettings;
+  final VoidCallback onCountries;
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +227,11 @@ class _Header extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
+                  IconButton(
+                    tooltip: 'Countries',
+                    onPressed: onCountries,
+                    icon: const Icon(Icons.public, color: paper),
+                  ),
                   IconButton(
                     tooltip: 'Settings',
                     onPressed: onSettings,

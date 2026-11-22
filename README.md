@@ -10,6 +10,9 @@ Scan a coin or banknote, let Claude identify it, and keep your own notes on ever
 - **Identify** the country, denomination, currency, year or era, material and what the piece shows, using Claude (`claude-opus-5-5`) with a JSON schema, so the answer always comes back as clean fields
 - **Check and edit** every field, then add your own notes: where it came from, its condition, the story
 - **Browse** coins and banknotes in a cabinet-style grid, with counts by kind and country
+- **Search** by name, country, year or notes, and filter by coins, banknotes or one country
+- **See where they come from** on a world map shaded by how many pieces each country has (Natural Earth outlines, public domain)
+- **Import** a `collection.json` back in, for example on a new phone; pieces you already have are skipped
 - **Export** the collection as `collection.json` with small photos, for the Coins and banknotes page on my portfolio
 
 ## Your key stays on your device

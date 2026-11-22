@@ -1,3 +1,4 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/identifier.dart';
@@ -143,6 +144,56 @@ class _SettingsPageState extends State<SettingsPage> {
                             },
                       icon: const Icon(Icons.ios_share),
                       label: Text('Export ${store.entries.length} pieces'),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  const Divider(color: line),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Import',
+                    style: text.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Adds the pieces from a collection.json export, for example '
+                    'from another phone. Pieces you already have are skipped.',
+                    style: text.bodyMedium?.copyWith(
+                      color: muted,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final file = await openFile(
+                          acceptedTypeGroups: const [
+                            XTypeGroup(
+                              label: 'Collector export',
+                              extensions: ['json'],
+                              mimeTypes: ['application/json'],
+                            ),
+                          ],
+                        );
+                        if (file == null) return;
+                        try {
+                          final added = await store.importJson(
+                            await file.readAsString(),
+                          );
+                          _toast(
+                            added == 0
+                                ? 'Nothing new to add'
+                                : 'Added $added ${added == 1 ? 'piece' : 'pieces'}',
+                          );
+                        } on FormatException catch (e) {
+                          _toast(e.message);
+                        }
+                      },
+                      icon: const Icon(Icons.file_open_outlined),
+                      label: const Text('Import a collection'),
                     ),
                   ),
                 ],

@@ -166,6 +166,77 @@ class CollectionStore extends ChangeNotifier {
       'entries': items,
     });
   }
+
+  /// Adds the pieces from an exported `collection.json` that are not in the
+  /// collection yet, with their thumbnails as photos. Returns how many were
+  /// added; throws [FormatException] if the file is not an export.
+  Future<int> importJson(String text) async {
+    final Object? json;
+    try {
+      json = jsonDecode(text);
+    } catch (_) {
+      throw const FormatException('This file is not JSON.');
+    }
+    final list = json is Map ? json['entries'] : null;
+    if (list is! List) {
+      throw const FormatException('This file is not a Collector export.');
+    }
+    var added = 0;
+    for (final raw in list) {
+      if (raw is! Map<String, Object?> || raw['id'] is! String) continue;
+      if (byId(raw['id']! as String) != null) continue;
+      final Entry entry;
+      try {
+        entry = Entry.fromJson(raw);
+      } catch (_) {
+        continue;
+      }
+      Uint8List? photo;
+      final thumb = raw['thumb'];
+      if (thumb is String && thumb.startsWith('data:image/jpeg;base64,')) {
+        try {
+          photo = base64Decode(thumb.substring(thumb.indexOf(',') + 1));
+        } catch (_) {}
+      }
+      await save(entry, photo: photo);
+      added++;
+    }
+    return added;
+  }
+
+  /// Pieces matching a search over name, country, currency, year and notes.
+  List<Entry> search(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return entries;
+    return entries
+        .where(
+          (e) => [
+            e.denomination,
+            e.country,
+            e.currency,
+            e.year,
+            e.material,
+            e.notes,
+            e.description,
+          ].any((f) => f.toLowerCase().contains(q)),
+        )
+        .toList();
+  }
+
+  /// How many pieces come from each country, most first.
+  List<MapEntry<String, int>> countryCounts() {
+    final counts = <String, int>{};
+    final names = <String, String>{};
+    for (final e in _entries) {
+      final c = e.country.trim();
+      if (c.isEmpty) continue;
+      final key = c.toLowerCase();
+      names.putIfAbsent(key, () => c);
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    return counts.entries.map((e) => MapEntry(names[e.key]!, e.value)).toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+  }
 }
 
 /// A short, sortable, unique-enough id.
